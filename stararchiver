@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import re
+import requests
+
+
+STARRED_REPOS_URL = (
+    "https://api.github.com/users/{username}/starred?page={page}"
+)
+
+
+def make_auth_header(github_token):
+    return {
+        "Authorization": "token {token}".format(token=github_token),
+    }
+
+
+def get_user_starred_repos(github_username, github_token):
+    resp = requests.get(
+        url=STARRED_REPOS_URL.format(username=github_username, page="1"),
+        headers=make_auth_header(github_token) if github_token else None,
+    )
+
+    detect_last_page = False
+    if "Link" in resp.headers:
+        detect_last_page = re.match(
+            r'.*page=(\d+)>; rel=\"last\"',
+            resp.headers["Link"],
+        )
+
+    if detect_last_page:
+        last_page = detect_last_page.group(1)
+        data = []
+        for page_number in xrange(0, int(last_page)):
+            resp = requests.get(
+                url=STARRED_REPOS_URL.format(
+                    username="mechtron",
+                    page=str(page_number+1),
+                ),
+                headers=(
+                    make_auth_header(github_token) if github_token else None
+                ),
+            )
+            data = data + json.loads(resp.text)
+    else:
+        data = json.loads(resp.text)
+
+    return data
+
+
+def increment_dict_key(dictionary, key):
+    dictionary[key] = dictionary.get(key, 0) + 1
+
+
+def process_repo_stats(repo_data):
+    languages = {}
+    for repo in repo_data:
+        increment_dict_key(languages, repo['language'])
+        # print repo['full_name']
+        # print repo['updated_at']
+        # print repo['has_wiki']
+        # print repo['stargazers_count']
+        # print repo['size']
+        # print repo['homepage']
+        # print repo['fork']
+        # print repo['forks']
+        # print repo['open_issues']
+        # print repo['language']
+        # print repo['created_at']
+        # print repo['pushed_at']
+    print json.dumps(languages)
+
+
+def main(github_username, github_token):
+    print github_username, github_token
+    # repo_data = get_user_starred_repos(args.username, args.token)
+    # process_repo_stats(repo_data)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='stars argument parser')
+    parser.add_argument(
+        'username',
+        help='Github username',
+        default="mechtron",
+    )
+    parser.add_argument(
+        '-t',
+        '--token',
+        help='Github API token (optional)',
+        required=False,
+        default=None,
+    )
+    args = parser.parse_args()
+    main(args.username, args.token)
