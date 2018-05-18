@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 
 import argparse
+import platform
 import json
+import shutil
 import re
 import requests
+import tempfile
+import time
+import errno
+import os
+import os.path
+from git import Repo
 
 
 STARRED_REPOS_URL = (
@@ -17,11 +25,29 @@ def make_auth_header(github_token):
     }
 
 
+def wait_for_api_credits(deadline):
+    pass
+    print "Waiting for additional GitHub API credits.."
+    max_sleep = 3600 # 1 hour
+    sleep_duration = 5
+    total_slept = 0
+    while total_slept < max_sleep:
+        current_time = int(time.time())
+        if current_time < deadline:
+            print "Not done waiting for new credits, yet.."
+            time.sleep(sleep_duration)
+            total_slept += sleep_duration
+    raise Exception('Time-out waiting for GitHub API credits :(')
+
+
 def get_user_starred_repos(github_username, github_token):
     resp = requests.get(
         url=STARRED_REPOS_URL.format(username=github_username, page="1"),
         headers=make_auth_header(github_token) if github_token else None,
     )
+
+    if resp.status_code == 403 and 'API rate limit exceeded' in resp.content:
+        wait_for_api_credits(resp.headers['X-RateLimit-Reset'])
 
     detect_last_page = False
     if "Link" in resp.headers:
@@ -30,53 +56,102 @@ def get_user_starred_repos(github_username, github_token):
             resp.headers["Link"],
         )
 
-    if detect_last_page:
-        last_page = detect_last_page.group(1)
-        data = []
-        for page_number in xrange(0, int(last_page)):
-            resp = requests.get(
-                url=STARRED_REPOS_URL.format(
-                    username="mechtron",
-                    page=str(page_number+1),
-                ),
-                headers=(
-                    make_auth_header(github_token) if github_token else None
-                ),
-            )
-            data = data + json.loads(resp.text)
-    else:
-        data = json.loads(resp.text)
+    if not detect_last_page:
+        return json.loads(resp.text)
 
+    last_page = detect_last_page.group(1)
+    data = []
+    for page_number in xrange(0, int(last_page)):
+        resp = requests.get(
+            url=STARRED_REPOS_URL.format(
+                username="mechtron",
+                page=str(page_number+1),
+            ),
+            headers=(
+                make_auth_header(github_token) if github_token else None
+            ),
+        )
+        data += json.loads(resp.text)
     return data
 
 
-def increment_dict_key(dictionary, key):
-    dictionary[key] = dictionary.get(key, 0) + 1
+def clone_repo(base_dir, repo_url):
+    print "Cloning {}..".format(repo_url)
+    try:
+        Repo.clone_from(repo_url, base_dir)
+    except Exception as e:
+        print "Wiki enabled but repo is unclonable ({})".format(e.command[3])
 
 
-def process_repo_stats(repo_data):
-    languages = {}
-    for repo in repo_data:
-        increment_dict_key(languages, repo['language'])
-        # print repo['full_name']
-        # print repo['updated_at']
-        # print repo['has_wiki']
-        # print repo['stargazers_count']
-        # print repo['size']
-        # print repo['homepage']
-        # print repo['fork']
-        # print repo['forks']
-        # print repo['open_issues']
-        # print repo['language']
-        # print repo['created_at']
-        # print repo['pushed_at']
-    print json.dumps(languages)
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
-def main(github_username, github_token):
-    print github_username, github_token
-    # repo_data = get_user_starred_repos(args.username, args.token)
-    # process_repo_stats(repo_data)
+def clone_each_starred_repo(base_dir, star_data):
+    dest_dir = None
+    if not base_dir:
+        system_tmp_dir = (
+            '/tmp' if platform.system() == 'Darwin'
+            else tempfile.gettempdir()
+        )
+        dest_dir = "{temp_folder}/stararchiver_{timestamp}".format(
+            temp_folder=system_tmp_dir,
+            timestamp=int(time.time()),
+        )
+    else:
+        dest_dir = base_dir
+    mkdir_p(dest_dir)
+    print "Repo data path: {}".format(dest_dir)
+    for repo in star_data:
+        clone_dest = "{base_dir}/{repo_author}-{repo_name}/".format(
+            base_dir=dest_dir,
+            repo_author=repo['owner']['login'],
+            repo_name=repo['name'],
+        )
+        clone_repo(clone_dest, repo['ssh_url'])
+        if repo['has_wiki']:
+            wiki_subdir = clone_dest + '_wiki/'
+            mkdir_p(wiki_subdir)
+            wiki_clone_url = repo['ssh_url'].replace('.git', '.wiki.git')
+            clone_repo(wiki_subdir, wiki_clone_url)
+    return dest_dir
+
+
+def compress_repos(temp_repo_path):
+    dest_directory = os.path.abspath(os.path.join(temp_repo_path, os.pardir))
+    dest_filename = "{}.tar".format(temp_repo_path.split('/')[-2])
+    dest_path = "{dir}/{filename}".format(
+        dir=dest_directory,
+        filename=dest_filename,
+    )
+    start_time = time.time()
+    print 'Creating tar file..'
+    os.system("tar -cvf {filename} {source_dir}".format(
+        filename=dest_path,
+        source_dir=temp_repo_path,
+    ))
+    print 'Gzipping tar file..'
+    os.system("gzip -f {}".format(dest_path))
+    end_time = time.time()
+    print "Time to compress starred repos: {}s".format(
+        int(end_time - start_time),
+    )
+    print 'Outputted tarball:', dest_path
+
+
+def main(args):
+    star_data = get_user_starred_repos(args.username, args.token)
+    data_path = clone_each_starred_repo(args.output_dir, star_data)
+    if args.compress:
+        compress_repos(data_path)
+    if args.delete_data:
+        shutil.rmtree(data_path)
 
 
 if __name__ == '__main__':
@@ -84,7 +159,23 @@ if __name__ == '__main__':
     parser.add_argument(
         'username',
         help='Github username',
-        default="mechtron",
+        default='mechtron',
+    )
+    parser.add_argument(
+        '-c',
+        '--compress',
+        help='Compress all repos into a single archive?',
+        required=False,
+        default=False,
+        action='store_true',
+    )
+    parser.add_argument(
+        '-d',
+        '--delete-data',
+        help='Delete clones of repos?',
+        required=False,
+        default=False,
+        action='store_true',
     )
     parser.add_argument(
         '-t',
@@ -93,5 +184,11 @@ if __name__ == '__main__':
         required=False,
         default=None,
     )
-    args = parser.parse_args()
-    main(args.username, args.token)
+    parser.add_argument(
+        '-o',
+        '--output-dir',
+        help='Output directory',
+        type=str,
+        default=None,
+    )
+    main(parser.parse_args())

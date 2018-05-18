@@ -2,7 +2,7 @@
 
 ## What does it do?
 
-Given a GitHub username, this script will look up the user's starred respositories, clone each repository and compress them into a single tarball (`{username}_starred_repos_{timestamp}.tar.gz`).
+Given a GitHub username, this script will look up the user's starred respositories, clone each repository and (optionally) compress them into a single tarball (`{username}_starred_repos_{timestamp}.tar.gz`).
 
 ## Install
 
@@ -11,6 +11,14 @@ Given a GitHub username, this script will look up the user's starred respositori
 ## Usage
 
     stararchiver <github-username>
+
+## Compress repositories into a tarball
+
+    stararchiver <github-username> -c
+
+## Specify the output directory
+
+    stararchiver <github-username> -o ~/starred_repos
 
 ## (optional) Specify a GitHub user token
 
