@@ -91,15 +91,7 @@ def mkdir_p(path):
             raise
 
 
-def clone_each_starred_repo(base_dir, star_data):
-    dest_dir = None
-    if not base_dir:
-        dest_dir = "{base_folder}/stararchiver_{timestamp}".format(
-            base_folder=os.getcwd(),
-            timestamp=int(time.time()),
-        )
-    else:
-        dest_dir = base_dir
+def clone_each_starred_repo(star_data, dest_dir):
     mkdir_p(dest_dir)
     print "Repo data path: {}".format(dest_dir)
     for repo in star_data:
@@ -117,9 +109,11 @@ def clone_each_starred_repo(base_dir, star_data):
     return dest_dir
 
 
-def compress_repos(temp_repo_path):
-    dest_directory = os.path.abspath(os.path.join(temp_repo_path, os.pardir))
-    dest_filename = "{}.tar".format(temp_repo_path.split('/')[-2])
+def compress_repos(repo_data_path):
+    dest_directory = os.path.abspath(os.path.join(repo_data_path, os.pardir))
+    dest_filename = "{}.tar".format(
+        repo_data_path.replace(dest_directory, '').replace('/', '')
+    )
     dest_path = "{dir}/{filename}".format(
         dir=dest_directory,
         filename=dest_filename,
@@ -128,7 +122,7 @@ def compress_repos(temp_repo_path):
     print 'Creating tar file..'
     os.system("tar -cvf {filename} {source_dir}".format(
         filename=dest_path,
-        source_dir=temp_repo_path,
+        source_dir=repo_data_path,
     ))
     print 'Gzipping tar file..'
     os.system("gzip -f {}".format(dest_path))
@@ -136,16 +130,28 @@ def compress_repos(temp_repo_path):
     print "Time to compress starred repos: {}s".format(
         int(end_time - start_time),
     )
-    print 'Outputted tarball:', dest_path
+    print "Outputted tarball: {}.gz".format(dest_path)
+
+
+def get_dest_dir(base_dir, username):
+    if not base_dir:
+        return "{base_folder}/stararchiver_{username}_{timestamp}/".format(
+            base_folder=os.getcwd(),
+            username=username,
+            timestamp=int(time.time()),
+        )
+    else:
+        return base_dir
 
 
 def main(args):
     star_data = get_user_starred_repos(args.username, args.token)
-    data_path = clone_each_starred_repo(args.output_dir, star_data)
+    dest_dir = get_dest_dir(args.output_dir, args.username)
+    cloned_data_dir = clone_each_starred_repo(star_data, dest_dir)
     if args.compress:
-        compress_repos(data_path)
+        compress_repos(cloned_data_dir)
     if args.delete_data:
-        shutil.rmtree(data_path)
+        shutil.rmtree(cloned_data_dir)
 
 
 if __name__ == '__main__':
