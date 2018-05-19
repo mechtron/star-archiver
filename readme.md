@@ -4,6 +4,10 @@
 
 Given a GitHub username, this script will look up the user's starred respositories, clone each repository and (optionally) compress them into a single tarball (`{username}_starred_repos_{timestamp}.tar.gz`).
 
+## (optional) Dependencies
+
+    zip
+
 ## Install
 
     pip install stararchiver

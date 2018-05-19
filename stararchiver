@@ -17,6 +17,12 @@ STARRED_REPOS_URL = (
 )
 
 
+def get_version():
+    return (
+        open(os.path.join(os.path.dirname(__file__), 'version')).read().strip()
+    )
+
+
 def make_auth_header(github_token):
     return {
         "Authorization": "token {token}".format(token=github_token),
@@ -145,6 +151,9 @@ def get_dest_dir(base_dir, username):
 
 
 def main(args):
+    if args.version:
+        print "v{}".format(get_version())
+        return
     star_data = get_user_starred_repos(args.username, args.token)
     dest_dir = get_dest_dir(args.output_dir, args.username)
     cloned_data_dir = clone_each_starred_repo(star_data, dest_dir)
@@ -160,6 +169,7 @@ if __name__ == '__main__':
         'username',
         help='Github username',
         default='mechtron',
+        nargs='?',
     )
     parser.add_argument(
         '-c',
@@ -188,8 +198,16 @@ if __name__ == '__main__':
         '-o',
         '--output-dir',
         help='Output directory',
-        required=False,        
+        required=False,
         type=str,
         default=None,
+    )
+    parser.add_argument(
+        '-v',
+        '--version',
+        help='stararchiver version',
+        required=False,
+        default=False,
+        action='store_true',
     )
     main(parser.parse_args())
