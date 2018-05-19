@@ -111,26 +111,26 @@ def clone_each_starred_repo(star_data, dest_dir):
 
 def compress_repos(repo_data_path):
     dest_directory = os.path.abspath(os.path.join(repo_data_path, os.pardir))
-    dest_filename = "{}.tar".format(
+    repo_data_folder_name = (
         repo_data_path.replace(dest_directory, '').replace('/', '')
     )
-    dest_path = "{dir}/{filename}".format(
-        dir=dest_directory,
-        filename=dest_filename,
-    )
     start_time = time.time()
-    print 'Creating tar file..'
-    os.system("tar -cvf {filename} {source_dir}".format(
-        filename=dest_path,
-        source_dir=repo_data_path,
+    print 'Compressing repositories..'
+    os.system((
+        "cd {base_dir} && zip -r {filename} ./{repo_data_folder_name}"
+    ).format(
+        base_dir=dest_directory,
+        filename=repo_data_folder_name,
+        repo_data_folder_name=repo_data_folder_name,
     ))
-    print 'Gzipping tar file..'
-    os.system("gzip -f {}".format(dest_path))
     end_time = time.time()
     print "Time to compress starred repos: {}s".format(
         int(end_time - start_time),
     )
-    print "Outputted tarball: {}.gz".format(dest_path)
+    print "Zip archive: {base_dir}/{filename}.zip".format(
+        base_dir=dest_directory,
+        filename=repo_data_folder_name,
+    )
 
 
 def get_dest_dir(base_dir, username):
