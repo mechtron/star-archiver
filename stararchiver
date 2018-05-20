@@ -1,26 +1,24 @@
 #!/usr/bin/env python
 
 import argparse
-import json
-import shutil
-import re
-import requests
-import time
 import errno
+import json
 import os
 import os.path
+import re
+import shutil
+import subprocess
+import time
+
+import requests
+os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 from git import Repo
 
 
+SA_VERSION = '0.0.5'
 STARRED_REPOS_URL = (
     "https://api.github.com/users/{username}/starred?page={page}"
 )
-
-
-def get_version():
-    return (
-        open(os.path.join(os.path.dirname(__file__), 'version')).read().strip()
-    )
 
 
 def make_auth_header(github_token):
@@ -150,14 +148,49 @@ def get_dest_dir(base_dir, username):
         return base_dir
 
 
+def assert_git_version():
+    try:
+        output = subprocess.check_output(['git', '--version']).strip()
+    except Exception as e:
+        if 'No such file or directory' in e.strerror:
+            print 'Error: stararchiver requires git to be installed'
+            exit(1)
+        else:
+            raise e
+    git_version = re.search(r"^git version\s*([\d.]+)", output, re.M).group(1)
+    old_git_error_message = 'Error: stararchiver requires git v1.7 or newer'
+    git_major_version = int(git_version.split('.')[0])
+    if (git_major_version < 1):
+        print old_git_error_message
+        exit(1)
+    if git_major_version == 1:
+        git_minor_version = int(git_version.split('.')[1])
+        if git_minor_version < 7:
+            print old_git_error_message
+            exit(1)
+
+
+def assert_zip_version():
+    try:
+        output = subprocess.check_output(['zip', '--version']).strip()
+    except Exception as e:
+        if 'No such file or directory' in e.strerror:
+            print 'Error: stararchiver requires zip to be installed'
+            exit(1)
+        else:
+            raise e
+
+
 def main(args):
     if args.version:
-        print "v{}".format(get_version())
+        print "v{}".format(SA_VERSION)
         return
+    assert_git_version()
     star_data = get_user_starred_repos(args.username, args.token)
     dest_dir = get_dest_dir(args.output_dir, args.username)
     cloned_data_dir = clone_each_starred_repo(star_data, dest_dir)
     if args.compress:
+        assert_zip_version()
         compress_repos(cloned_data_dir)
     if args.delete_data:
         shutil.rmtree(cloned_data_dir)
