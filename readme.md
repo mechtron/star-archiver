@@ -1,5 +1,7 @@
 # star-archiver
 
+Current version: `0.0.5`
+
 ## What does it do?
 
 Given a GitHub username, this script will look up the user's starred respositories, clone each repository and (optionally) compress them into a single tarball (`{username}_starred_repos_{timestamp}.tar.gz`).
@@ -38,6 +40,8 @@ There is an optional parameter `-t`/`--token` that can be used to specify a GitH
 
 ## pip packaging
 
+View the `stararchiver` package on [PyPi](https://pypi.org/project/stararchiver/).
+
 #### Build a new pip package
 
     ./build.sh
@@ -45,3 +49,4 @@ There is an optional parameter `-t`/`--token` that can be used to specify a GitH
 #### Upload a new package to PyPi
 
     ./update-pip.sh
+
