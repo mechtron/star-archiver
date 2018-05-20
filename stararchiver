@@ -15,7 +15,7 @@ os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 from git import Repo
 
 
-SA_VERSION = '0.0.6'
+SA_VERSION = '0.0.8'
 STARRED_REPOS_URL = (
     "https://api.github.com/users/{username}/starred?page={page}"
 )
@@ -115,9 +115,7 @@ def clone_each_starred_repo(star_data, dest_dir):
 
 def compress_repos(repo_data_path):
     dest_directory = os.path.abspath(os.path.join(repo_data_path, os.pardir))
-    repo_data_folder_name = (
-        repo_data_path.replace(dest_directory, '').replace('/', '')
-    )
+    repo_data_folder_name = repo_data_path.split('/')[-2]
     start_time = time.time()
     print 'Compressing repositories..'
     os.system((
@@ -138,14 +136,12 @@ def compress_repos(repo_data_path):
 
 
 def get_dest_dir(base_dir, username):
-    if not base_dir:
-        return "{base_folder}/stararchiver_{username}_{timestamp}/".format(
-            base_folder=os.getcwd(),
-            username=username,
-            timestamp=int(time.time()),
-        )
-    else:
-        return base_dir
+    new_base_dir = os.getcwd() if base_dir is None else base_dir    
+    return "{base_folder}/stararchiver_{username}_{timestamp}/".format(
+        base_folder=new_base_dir,
+        username=username,
+        timestamp=int(time.time()),
+    )
 
 
 def assert_git_version():
