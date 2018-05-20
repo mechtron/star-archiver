@@ -22,24 +22,26 @@ Given a GitHub username, this script will look up the user's starred respositori
 
     stararchiver <github-username>
 
-### Compress repositories into a single zip file
+#### Compress repositories into a single zip file
 
     stararchiver <github-username> -c
 
-### Specify the output directory
+#### Specify the output directory
 
     stararchiver <github-username> -o ~/starred_repos
 
-### (optional) Specify a GitHub user token
+#### (optional) Specify a GitHub user token
 
 There is an optional parameter `-t`/`--token` that can be used to specify a GitHub user API token. Doing this will allow you to perform more successive API calls, allowing for the archive of longer GitHub user star lists.
 
+    stararchiver <github-username> -t <github-api-token>
+
 ## pip packaging
 
-### Build a new pip package
+#### Build a new pip package
 
     ./build.sh
 
-## Upload a new package to PyPi
+#### Upload a new package to PyPi
 
     ./update-pip.sh

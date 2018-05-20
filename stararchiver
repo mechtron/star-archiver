@@ -15,7 +15,7 @@ os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 from git import Repo
 
 
-SA_VERSION = '0.0.5'
+SA_VERSION = '0.0.6'
 STARRED_REPOS_URL = (
     "https://api.github.com/users/{username}/starred?page={page}"
 )
