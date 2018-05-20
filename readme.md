@@ -1,6 +1,6 @@
 # star-archiver
 
-Current version: `0.0.5`
+Current version: `0.0.6`
 
 ## What does it do?
 
