@@ -4,7 +4,7 @@ Current version: `0.0.6`
 
 ## What does it do?
 
-Given a GitHub username, this script will look up the user's starred respositories, clone each repository and (optionally) compress them into a single tarball (`{username}_starred_repos_{timestamp}.tar.gz`).
+Given a GitHub username, this script will look up the user's starred respositories, clone each repository and (optionally) compress them into a single zip file with the filename format `{username}_{repo-owner}-{repo-name}_{timestamp}.zip`.
 
 ## Dependencies
 
