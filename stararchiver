@@ -15,7 +15,7 @@ os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 from git import Repo
 
 
-SA_VERSION = '0.0.8'
+SA_VERSION = '0.0.9'
 STARRED_REPOS_URL = (
     "https://api.github.com/users/{username}/starred?page={page}"
 )
@@ -28,7 +28,6 @@ def make_auth_header(github_token):
 
 
 def wait_for_api_credits(deadline):
-    pass
     print "Waiting for additional GitHub API credits.."
     max_sleep = 3600 # 1 hour
     sleep_duration = 5
@@ -82,7 +81,14 @@ def clone_repo(base_dir, repo_url):
     try:
         Repo.clone_from(repo_url, base_dir)
     except Exception as e:
-        print "Wiki enabled but repo is unclonable ({})".format(e.command[3])
+        if 'repository not exported' in e.stderr:
+            if '.wiki.git' in repo_url:
+                print "Wiki enabled but repo is unclonable ({})".format(
+                    e.command[3],
+                )
+        else:
+            print "Error cloing GitHub repository: {}".format(e.stderr)
+            raise e
 
 
 def mkdir_p(path):
@@ -99,14 +105,14 @@ def clone_each_starred_repo(star_data, dest_dir):
     mkdir_p(dest_dir)
     print "Repo data path: {}".format(dest_dir)
     for repo in star_data:
-        clone_dest = "{base_dir}/{repo_author}-{repo_name}/".format(
+        clone_dest = "{base_dir}/{repo_author}-{repo_name}".format(
             base_dir=dest_dir,
             repo_author=repo['owner']['login'],
             repo_name=repo['name'],
         )
         clone_repo(clone_dest, repo['ssh_url'])
         if repo['has_wiki']:
-            wiki_subdir = clone_dest + '_wiki/'
+            wiki_subdir = clone_dest + '/_wiki'
             mkdir_p(wiki_subdir)
             wiki_clone_url = repo['ssh_url'].replace('.git', '.wiki.git')
             clone_repo(wiki_subdir, wiki_clone_url)
@@ -115,7 +121,7 @@ def clone_each_starred_repo(star_data, dest_dir):
 
 def compress_repos(repo_data_path):
     dest_directory = os.path.abspath(os.path.join(repo_data_path, os.pardir))
-    repo_data_folder_name = repo_data_path.split('/')[-2]
+    repo_data_folder_name = repo_data_path.split('/')[-1]
     start_time = time.time()
     print 'Compressing repositories..'
     os.system((
@@ -136,8 +142,11 @@ def compress_repos(repo_data_path):
 
 
 def get_dest_dir(base_dir, username):
-    new_base_dir = os.getcwd() if base_dir is None else base_dir    
-    return "{base_folder}/stararchiver_{username}_{timestamp}/".format(
+    new_base_dir = (
+        os.getcwd() if base_dir is None
+        else os.path.abspath(os.path.join(base_dir))
+    )
+    return "{base_folder}/stararchiver_{username}_{timestamp}".format(
         base_folder=new_base_dir,
         username=username,
         timestamp=int(time.time()),
