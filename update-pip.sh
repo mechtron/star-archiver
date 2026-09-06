@@ -1,3 +1,4 @@
+#!/bin/sh
+set -e
 ./build.sh
-sudo -H pip install twine
-twine upload dist/*
+python3 -m twine upload --repository pypi dist/*

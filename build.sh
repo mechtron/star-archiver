@@ -1,3 +1,5 @@
-sudo rm -rf ./dist
-sudo python setup.py sdist
-sudo python setup.py install
+#!/bin/sh
+set -e
+rm -rf dist build stararchiver.egg-info
+python3 -m build
+python3 -m pip install --user dist/*.whl

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stararchiver"
+version = "1.0.0"
+description = "Archive a GitHub user's starred repositories by cloning them locally."
+readme = "readme.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = ["github", "stars", "archiver", "backup", "clone"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Version Control",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://pypi.org/project/stararchiver/"
+
+[tool.setuptools]
+script-files = ["stararchiver"]
