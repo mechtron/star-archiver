@@ -1,5 +1,6 @@
 build/
 dist/
 stararchiver.egg-info/
+__pycache__/
 .DS_Store
 *.pyc
