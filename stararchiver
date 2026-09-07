@@ -105,7 +105,10 @@ def clone_repo(dest, url, shallow):
     if shallow:
         cmd += ["--depth", "1"]
     cmd += [url, dest]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    # Never prompt for credentials: a 401/404 from GitHub (e.g. a wiki that
+    # was never created) must fail fast instead of hanging on a login prompt.
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
     if proc.returncode != 0:
         return False, proc.stderr.strip()
     return True, None

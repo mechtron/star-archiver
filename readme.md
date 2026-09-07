@@ -112,8 +112,25 @@ View the `stararchiver` package on [PyPI](https://pypi.org/project/stararchiver/
 
 ## Development
 
-Run straight from a checkout (no install needed):
+Run straight from a checkout (no install needed). The only dependency is
+`requests`.
+
+On Homebrew-managed Python, `pip` refuses to install packages outside a
+virtual environment ([PEP 668](https://peps.python.org/pep-0668/)), so create
+one first:
 
 ```sh
+python3 -m venv ~/.venvs/stararchiver
+source ~/.venvs/stararchiver/bin/activate
+pip install requests
 ./stararchiver <github-username> --dry-run
+```
+
+Alternatively, install the `stararchiver` command itself from the local
+checkout with [pipx](https://pipx.pypa.io/) (no PyPI upload needed):
+
+```sh
+brew install pipx
+pipx install .
+stararchiver <github-username> --dry-run
 ```
